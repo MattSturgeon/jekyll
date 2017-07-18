@@ -21,9 +21,42 @@ module Jekyll
         # up with a different preference on which comes first.
 
         def search_file(req, res, basename)
-          # /file.* > /file/index.html > /file.html
+          # /file.* -> /file.html
           super || super(req, res, "#{basename}.html")
         end
+
+        # rubocop:disable Lint/AssignmentInCondition
+        def search_index_file(req, res)
+          # /file/index.html -> /file.html
+
+          # First, let's see if the default implementation can figure it out.
+          # (Check for index files in the res.filename directory)
+          if file = super
+            return file
+          end
+
+          # Ok, I guess that didn't work, I guess there's no basename/index.html
+          # Let's look for basename.html instead...
+
+          # We need to extract the final part of the path
+          path_arr = res.filename.scan(%r!/[^/]*!)
+          while basename = path_arr.pop
+            break unless basename == "/"
+          end
+
+          # We need to change res.filename to the parent directory for
+          #  search_file to work, so make a backup incase it doesn't work
+          old_filename = res.filename
+          res.filename = path_arr.join
+
+          # Try and find a file named dirname.html in the parent directory
+          unless file = search_file(req, res, basename + ".html")
+            # Don't modify filename unless we actually found a file to serve
+            res.filename = old_filename
+          end
+          return file
+        end
+        # rubocop:enable Lint/AssignmentInCondition
 
         # rubocop:disable Style/MethodName
         def do_GET(req, res)
