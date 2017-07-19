@@ -25,7 +25,6 @@ module Jekyll
           super || super(req, res, "#{basename}.html")
         end
 
-        # rubocop:disable Lint/AssignmentInCondition
         def search_index_file(req, res)
           # /file/index.html -> /file.html
 
@@ -44,15 +43,13 @@ module Jekyll
             # so we'll turn res.filename into an array of path elements then pop off the
             # basename.
             #
-            # We use a while loop just in case res.filename has trailing slashes.
-            #
             # Once we have popped off the basename, we can join up what's left and use it
             # as the new res.filename.
-            path_arr = res.filename.scan(%r!/[^/]*!)
-            while basename = path_arr.pop
-              break unless basename == "/"
-            end
-            res.filename = path_arr.join
+            #
+            # Index of final / that isn't followed by another / or EOL
+            index = res.filename.rindex %r!/(?!/|$)!
+            basename = res.filename[index..-1]
+            res.filename = res.filename[0, index]
 
             # Try and find a file named dirname.html in the parent directory.
             file = search_file(req, res, basename + ".html")
@@ -63,7 +60,6 @@ module Jekyll
 
           return file
         end
-        # rubocop:enable Lint/AssignmentInCondition
 
         # rubocop:disable Style/MethodName
         def do_GET(req, res)
